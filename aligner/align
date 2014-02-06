@@ -3,9 +3,26 @@ import optparse
 import sys
 from collections import defaultdict
 
+
 #Initializer
 def initialize():
 	print 'loading data'
+	
+	f_count = defaultdict(int)
+	e_count = defaultdict(int)
+	fe_count = defaultdict(int)
+	for (n, (f, e)) in enumerate(bitext):
+	  for f_i in set(f):
+	    f_count[f_i] += 1
+	    for e_j in set(e):
+	      fe_count[(f_i,e_j)] += 1
+	  for e_j in set(e):
+	    e_count[e_j] += 1
+
+	dice = defaultdict(int)
+	for (k, (f_i, e_j)) in enumerate(fe_count.keys()):
+	  dice[(f_i,e_j)] = 2.0 * fe_count[(f_i, e_j)] / (f_count[f_i] + e_count[e_j])
+
 	for (f, e) in (bitext):
 		len_f = len(f)				
 		len_e = len(e)
@@ -17,9 +34,11 @@ def initialize():
 				total_e[e_j] = 0.0
 				count_ef[(e_j,f_i)] = 0.0
 				count_fe[(e_j,f_i)] = 0.0
-				t_ef[(e_j,f_i)]=1.0
+				if( abs(j - i) > 4):
+					t_ef[(e_j,f_i)]= dice[(f_i,e_j)]
+				else:
+					t_ef[(e_j,f_i)]= dice[(f_i,e_j)]+1
 				a[i,j,len_e,len_f] = (1.0 / (len_e+1.0))
-		t_ef[e[0],f[0]] = 10
 	print 'done loading'
 
 #EM Trainer in Reverse
@@ -185,7 +204,7 @@ total_sf = defaultdict(float)
 initialize()
 
 #EM
-train(5)
+#train(5)
 
 #EM Reverse
 trainReverse(5)
