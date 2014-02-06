@@ -112,12 +112,12 @@ def train2(iterations):
 		#smoothing
 		laplace = 1.0
 		for val in counts_d:
-			if val > 0 and val < laplace:
-				laplace = val
+			if counts_d[val] > 0 and counts_d[val] < laplace:
+				laplace = counts_d[val]
 
 		laplace = 0.5 * laplace
-		for (i,j,f,e) in counts_d:
-			counts_d[(i,j,f,e)] += laplace
+		for val in counts_d:
+			counts_d[val] += laplace
 
 		for (j,f,e) in (total_d):
 			total_d[(j,f,e)] += laplace * e
