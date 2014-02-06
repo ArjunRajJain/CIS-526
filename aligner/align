@@ -5,27 +5,26 @@ from collections import defaultdict
 
 #Initializer
 def initialize():
-	for (n, (f, e)) in enumerate(bitext):
-		if n%1000==0:
-			print "loading...",n
-
-		for e_j in set(e):
-			total_e[e_j] = 0.0
-
+	print 'loading data'
+	for (f, e) in (bitext):
+		len_f = len(f)				
+		len_e = len(e)
 		for (i,f_i) in enumerate(f):
 			total_f[f_i] = 0.0
 
 			for (j,e_j) in enumerate(e):
+
+				total_e[e_j] = 0.0
 				count_ef[(e_j,f_i)] = 0.0
 				count_fe[(e_j,f_i)] = 0.0
 				t_ef[(e_j,f_i)]=1.0
-				a[i,j,len(e),len(f)] = (1.0 / (len(f)+1.0))
+				a[i,j,len_e,len_f] = (1.0 / (len_e+1.0))
 		t_ef[e[0],f[0]] = 10
 	print 'done loading'
 
 #EM Trainer in Reverse
 def trainReverse(iterations):
-		
+	print 'start backward model 1 training'
 	for b in range(iterations):
 
 		#set all totals to 0
@@ -54,10 +53,10 @@ def trainReverse(iterations):
 			t_ef[(e_j,f_i)] = (count_fe[(f_i,e_j)]/total_e[e_j])
 				
 		print "iteration:", b
-
+	print 'end backward model 1 training'
 #EM Trainer
 def train(iterations):
-		
+	print 'start forward model 1 training'
 	for b in range(iterations):
 
 		#set all totals to 0
@@ -86,28 +85,29 @@ def train(iterations):
 			t_ef[(e_j,f_i)] = (count_ef[(e_j,f_i)]/total_f[f_i])
 				
 		print "iteration:", b
-
+	print 'end model 1 training'
 #Model 2 Trainer
 def train2(iterations):
-		
+	print 'start model 2 training'
 	for b in range(iterations):
 
 		#for all sentence pairs
 		for (f,e) in bitext:
-
+			len_e = len(e)
+			len_f = len(f)
 			for (j,e_j) in enumerate(e):
 				total_sf[(e_j)]=0.0
 				
 				for (i,f_i) in enumerate(f):
-					total_sf[(e_j)] += (t_ef[(e_j,f_i)] * a[i,j,len(e),len(f)])
+					total_sf[(e_j)] += t_ef[(e_j,f_i)] * a[(i,j,len_e,len_f)]
 				
 				
 				for (i,f_i) in enumerate(f):
-					c = t_ef[(e_j,f_i)] * a[i,j,len(e),len(f)] / total_sf[(e_j)]
-					count[e_j,f_i] += c
-					counts_d[(i,j,len(f),len(e))] += c
-					total[f_i] += c
-					total_d[(j,len(f),len(e))] +=c
+					c = t_ef[(e_j,f_i)] * a[(i,j,len_e,len_f)] / total_sf[(e_j)]
+					count[(e_j,f_i)] += c
+					counts_d[(i,j,len_f,len_e)] += c
+					total[(f_i)] += c
+					total_d[(j,len_f,len_e)] +=c
 
 		#smoothing
 		laplace = 1.0
@@ -115,7 +115,7 @@ def train2(iterations):
 			if counts_d[val] > 0 and counts_d[val] < laplace:
 				laplace = counts_d[val]
 
-		laplace = 0.5 * laplace
+		laplace = laplace/2.0
 		for val in counts_d:
 			counts_d[val] += laplace
 
@@ -129,19 +129,19 @@ def train2(iterations):
 			a[(i,j,e,f)] += counts_d[(i,j,f,e)] / total_d[(j,f,e)]
 
 		print "iteration:", b
-	
+	print 'end model 2 training'
 def writeOutput(x):
 	outfile = open('final.a','w') 
 	print "printing to file..."
 	for (f, e) in bitext:
 	  for (i, f_i) in enumerate(f): 
-	  	  best_p=0
-	  	  best_j=0
+	  	  best_prob=0
+	  	  best_alignment=0
 		  for (j, e_j) in enumerate(e):
-		      if t_ef[(e_j,f_i)] > best_p:
-		      	      best_p=t_ef[(e_j,f_i)]
-		      	      best_j=j
-	          outfile.write("%i-%i " % (i,best_j))
+		      if t_ef[(e_j,f_i)] > best_prob:
+		      	      best_prob=t_ef[(e_j,f_i)]
+		      	      best_alignment=j
+	          outfile.write("%i-%i " % (i,best_alignment))
 	  outfile.write("\n")
 	outfile.close()
 	return
