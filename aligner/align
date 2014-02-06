@@ -12,21 +12,16 @@ def initialize():
 		for e_j in set(e):
 			total_e[e_j] = 0.0
 
-		for f_i in set(f):
+		for (i,f_i) in enumerate(f):
 			total_f[f_i] = 0.0
 
-			for e_j in set(e):
+			for (j,e_j) in enumerate(e):
 				count_ef[(e_j,f_i)] = 0.0
 				count_fe[(e_j,f_i)] = 0.0
-				t_ef[(e_j,f_i)]=(1.00/len(e))
+				t_ef[(e_j,f_i)]=1.0
+				a[i,j,len(e),len(f)] = (1.0 / (len(f)+1.0))
 		t_ef[e[0],f[0]] = 10
 	print 'done loading'
-
-def bayesian(iterations):
-	for b in range(iterations):
-		for (n,(f,e)) in enumerate(bitext):
-			for (i, f_i) in enumerate(f): 
-				for (j, e_j) in enumerate(e):
 
 #EM Trainer in Reverse
 def trainReverse(iterations):
@@ -92,6 +87,48 @@ def train(iterations):
 				
 		print "iteration:", b
 
+#Model 2 Trainer
+def train2(iterations):
+		
+	for b in range(iterations):
+
+		#for all sentence pairs
+		for (f,e) in bitext:
+
+			for (j,e_j) in enumerate(e):
+				total_sf[(e_j)]=0.0
+				
+				for (i,f_i) in enumerate(f):
+					total_sf[(e_j)] += (t_ef[(e_j,f_i)] * a[i,j,len(e),len(f)])
+				
+				
+				for (i,f_i) in enumerate(f):
+					c = t_ef[(e_j,f_i)] * a[i,j,len(e),len(f)] / total_sf[(e_j)]
+					count[e_j,f_i] += c
+					counts_d[(i,j,len(f),len(e))] += c
+					total[f_i] += c
+					total_d[(j,len(f),len(e))] +=c
+
+		#smoothing
+		laplace = 1.0
+		for val in counts_d:
+			if val > 0 and val < laplace:
+				laplace = val
+
+		laplace = 0.5 * laplace
+		for (i,j,f,e) in counts_d:
+			counts_d[(i,j,f,e)] += laplace
+
+		for (j,f,e) in (total_d):
+			total_d[(j,f,e)] += laplace * e
+
+		#estimate probablities
+		for (e_j,f_i) in count:
+			t_ef[(e_j,f_i)] = count[(e_j,f_i)] / total[(f_i)]
+		for (i,j,f,e) in counts_d:
+			a[(i,j,e,f)] += counts_d[(i,j,f,e)] / total_d[(j,f,e)]
+
+		print "iteration:", b
 	
 def writeOutput(x):
 	outfile = open('final.a','w') 
@@ -124,17 +161,25 @@ f_data = "%s.%s" % (opts.train, opts.french)
 e_data = "%s.%s" % (opts.train, opts.english)
 bitext = [[sentence.strip().split() for sentence in pair] for pair in zip(open(f_data), open(e_data))[:opts.num_sents]]
 
-#
+#Model 1 Variables
 total_f = defaultdict(float)
 count_ef = defaultdict(float)
 t_ef = defaultdict(float)
 
-#reversing
+#Model 1 Reverse Variables
 total_e = defaultdict(float)
 count_fe = defaultdict(float)
 
 dict_eng=defaultdict(int)
 dict_fr=defaultdict(int)
+
+# Model 2 Variables
+a = defaultdict(float)
+counts_d = defaultdict(float)
+total_d = defaultdict(float)
+total = defaultdict(float)
+count = defaultdict(float)
+total_sf = defaultdict(float)
 
 #initialize
 initialize()
@@ -145,8 +190,7 @@ train(5)
 #EM Reverse
 trainReverse(5)
 
-#Baysian
-bayesian(5)
+train2(5)
 
 #Write out
 writeOutput('final')
