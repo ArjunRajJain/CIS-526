@@ -34,7 +34,7 @@ def initialize():
 				total_e[e_j] = 0.0
 				count_ef[(e_j,f_i)] = 0.0
 				count_fe[(e_j,f_i)] = 0.0
-				if( abs(j - i) > 4):
+				if( abs(j - i) > 5):
 					t_ef[(e_j,f_i)]= dice[(f_i,e_j)]
 				else:
 					t_ef[(e_j,f_i)]= dice[(f_i,e_j)]+1
